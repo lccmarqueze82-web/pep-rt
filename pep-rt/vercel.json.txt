@@ -1,8 +1,0 @@
-{
-  "rootDirectory": "pep-rt",
-  "cleanUrls": true,
-  "routes": [
-    { "src": "/api/organizar", "dest": "/pep-rt/api/organizar.js" },
-    { "src": "/api/analisar", "dest": "/pep-rt/api/analisar.js" }
-  ]
-}
