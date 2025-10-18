@@ -1,0 +1,7 @@
+{
+  "cleanUrls": true,
+  "routes": [
+    { "src": "/api/organizar", "dest": "/api/organizar.js" },
+    { "src": "/api/analisar", "dest": "/api/analisar.js" }
+  ]
+}
