@@ -1,7 +1,12 @@
 {
-  "cleanUrls": true,
+  "version": 2,
+  "public": true,
+  "builds": [
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "api/**/*.js", "use": "@vercel/node" }
+  ],
   "routes": [
-    { "src": "/api/organizar", "dest": "/api/organizar.js" },
-    { "src": "/api/analisar", "dest": "/api/analisar.js" }
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
