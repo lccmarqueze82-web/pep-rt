@@ -63,10 +63,69 @@
       if (abortAna) { abortAna.abort(); abortAna = null; }
     }
 
+    // ... (código anterior da script)
+
     async function streamTo(el, url, payload) {
       el.textContent = '';
       const controller = new AbortController();
       const signal = controller.signal;
+
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal
+        });
+
+        if (!res.ok || !res.body) {
+          el.textContent = `Erro do servidor (${res.status}): ${res.statusText}`;
+          return { abort: () => controller.abort() };
+        }
+        
+        // A função não precisa lidar com SSE aqui se o backend fizer o trabalho.
+        // Assumindo que o backend está re-transmitindo o corpo da resposta bruta (que é SSE).
+        // Se a resposta do backend for SSE (como é o caso aqui):
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        
+        // Vamos extrair o conteúdo do JSON SSE.
+        // NOTA: Esta é a parte mais crítica e o código original estava incorreto para SSE.
+        // Se você não quer lidar com SSE no frontend, a correção é mover a lógica 
+        // de decodificação de SSE para o backend (API Functions), o que é MUITO mais robusto.
+
+        // **Opção 1 (Melhor): Deixar o Backend Limpar o SSE (Ver Seção 2)**
+        // Se você fizer a correção do Backend na Seção 2 (Recomendado), a função pode ser:
+        
+        (async () => {
+          try {
+            let fullText = '';
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              
+              // O backend CORRIGIDO vai enviar apenas o texto puro.
+              fullText += decoder.decode(value, { stream: true });
+              el.textContent = fullText; 
+            }
+          } catch (e) {
+            if (e.name !== 'AbortError') {
+              el.textContent += `\n[Erro de Stream: ${e.message}]`;
+            }
+          }
+        })();
+
+        return { abort: () => controller.abort() };
+
+      } catch (e) {
+        if (e.name !== 'AbortError') {
+          el.textContent = `Erro de Conexão: ${e.message}`;
+        }
+        return { abort: () => controller.abort() };
+      }
+    }
+
+// ... (código restante da script)
 
       const res = await fetch(url, {
         method: 'POST',
@@ -127,3 +186,4 @@
 </body>
 
 </html>
+
