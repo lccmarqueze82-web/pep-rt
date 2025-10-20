@@ -1,189 +1,51 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PEP — 3 painéis + IA</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PEP (Protótipo com IA)</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script defer src="script.js"></script>
 </head>
-<body>
-  <header>
-    <h1>PEP (protótipo) — Entrada | Organização | Análise</h1>
+
+<body class="bg-gray-50 text-gray-800">
+  <header class="bg-blue-700 text-white py-4 shadow-md">
+    <div class="max-w-5xl mx-auto px-4">
+      <h1 class="text-2xl font-semibold">PEP — Prototipagem com IA</h1>
+      <p class="text-sm opacity-80">Entrada | Organização | Análise</p>
+    </div>
   </header>
 
-  <main>
-    <section class="row">
-      <div class="col">
-        <label>1) Informação crua do atendimento</label>
-        <textarea id="entrada" placeholder="Digite ou cole aqui o texto livre da consulta..."></textarea>
-      </div>
-
-      <div class="col">
-        <label>2) Organização (SOAP/estruturado)</label>
-        <pre id="org">Aguardando...</pre>
-      </div>
-
-      <div class="col">
-        <label>3) Análise clínica (IA em tempo real)</label>
-        <pre id="analise">Aguardando...</pre>
-      </div>
+  <main class="max-w-5xl mx-auto mt-8 p-4 grid md:grid-cols-3 gap-4">
+    <!-- Entrada -->
+    <section class="bg-white rounded-2xl shadow p-4 flex flex-col">
+      <h2 class="text-lg font-semibold mb-2">1️⃣ Informação bruta</h2>
+      <textarea id="entrada" rows="10" class="border rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none resize-none"
+        placeholder="Digite ou cole o texto do atendimento..."></textarea>
     </section>
 
-    <section class="footer">
-      <div class="controls">
-        <button id="btnExecutar">▶️ Processar</button>
-        <button id="btnPausar">⏸️ Pausar</button>
-        <button id="btnLimpar">🧹 Limpar</button>
-        <label class="small"><input type="checkbox" id="cbAuto" checked /> Processar automaticamente (1s após parar de digitar)</label>
-      </div>
-      <div class="hint">⚠️ Dados sensíveis: use exemplos fictícios neste protótipo.</div>
+    <!-- Organização -->
+    <section class="bg-white rounded-2xl shadow p-4 flex flex-col">
+      <h2 class="text-lg font-semibold mb-2">2️⃣ Organização (SOAP)</h2>
+      <pre id="organizado" class="flex-1 bg-gray-100 p-3 rounded-lg overflow-auto text-sm whitespace-pre-wrap">Aguardando...</pre>
+    </section>
+
+    <!-- Análise -->
+    <section class="bg-white rounded-2xl shadow p-4 flex flex-col">
+      <h2 class="text-lg font-semibold mb-2">3️⃣ Análise Clínica (IA)</h2>
+      <pre id="analise" class="flex-1 bg-gray-100 p-3 rounded-lg overflow-auto text-sm whitespace-pre-wrap">Aguardando...</pre>
     </section>
   </main>
 
-  <script>
-    const entrada = document.getElementById('entrada');
-    const org = document.getElementById('org');
-    const analise = document.getElementById('analise');
-    const btnExecutar = document.getElementById('btnExecutar');
-    const btnPausar = document.getElementById('btnPausar');
-    const btnLimpar = document.getElementById('btnLimpar');
-    const cbAuto = document.getElementById('cbAuto');
+  <div class="max-w-5xl mx-auto mt-6 flex gap-2 p-4 justify-end">
+    <button id="processar" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow">Processar</button>
+    <button id="limpar" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg shadow">Limpar</button>
+  </div>
 
-    let abortOrg = null;
-    let abortAna = null;
-    let timer = null;
-
-    function limpar() {
-      org.textContent = 'Aguardando...';
-      analise.textContent = 'Aguardando...';
-    }
-
-    function pausar() {
-      if (abortOrg) { abortOrg.abort(); abortOrg = null; }
-      if (abortAna) { abortAna.abort(); abortAna = null; }
-    }
-
-    // ... (código anterior da script)
-
-    async function streamTo(el, url, payload) {
-      el.textContent = '';
-      const controller = new AbortController();
-      const signal = controller.signal;
-
-      try {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          signal
-        });
-
-        if (!res.ok || !res.body) {
-          el.textContent = `Erro do servidor (${res.status}): ${res.statusText}`;
-          return { abort: () => controller.abort() };
-        }
-        
-        // A função não precisa lidar com SSE aqui se o backend fizer o trabalho.
-        // Assumindo que o backend está re-transmitindo o corpo da resposta bruta (que é SSE).
-        // Se a resposta do backend for SSE (como é o caso aqui):
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        
-        // Vamos extrair o conteúdo do JSON SSE.
-        // NOTA: Esta é a parte mais crítica e o código original estava incorreto para SSE.
-        // Se você não quer lidar com SSE no frontend, a correção é mover a lógica 
-        // de decodificação de SSE para o backend (API Functions), o que é MUITO mais robusto.
-
-        // **Opção 1 (Melhor): Deixar o Backend Limpar o SSE (Ver Seção 2)**
-        // Se você fizer a correção do Backend na Seção 2 (Recomendado), a função pode ser:
-        
-        (async () => {
-          try {
-            let fullText = '';
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              
-              // O backend CORRIGIDO vai enviar apenas o texto puro.
-              fullText += decoder.decode(value, { stream: true });
-              el.textContent = fullText; 
-            }
-          } catch (e) {
-            if (e.name !== 'AbortError') {
-              el.textContent += `\n[Erro de Stream: ${e.message}]`;
-            }
-          }
-        })();
-
-        return { abort: () => controller.abort() };
-
-      } catch (e) {
-        if (e.name !== 'AbortError') {
-          el.textContent = `Erro de Conexão: ${e.message}`;
-        }
-        return { abort: () => controller.abort() };
-      }
-    }
-
-// ... (código restante da script)
-
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal
-      });
-
-      if (!res.ok || !res.body) {
-        el.textContent = 'Erro ao conectar.';
-        return { abort: () => controller.abort() };
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-
-      (async () => {
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            el.textContent += decoder.decode(value, { stream: true });
-          }
-        } catch (e) {}
-      })();
-
-      return { abort: () => controller.abort() };
-    }
-
-    async function processar() {
-      pausar();
-      const texto = entrada.value.trim();
-      if (!texto) return;
-
-      const payloadOrg = {
-        input: texto,
-        instructions: `Organize o texto clínico no formato SOAP curto.\n- S: Queixa principal e HMA em tópicos\n- O: Sinais vitais, achados relevantes\n- A: Hipóteses com CID-10 se fornecido\n- P: Condutas iniciais\nNão invente dados.`
-      };
-      const payloadAna = {
-        input: texto,
-        instructions: `Avalie coerência, red flags e sugira exames/condutas. Use [revisar] para dúvidas.`
-      };
-
-      abortOrg = await streamTo(org, '/api/organizar', payloadOrg);
-      abortAna = await streamTo(analise, '/api/analisar', payloadAna);
-    }
-
-    btnExecutar.addEventListener('click', processar);
-    btnPausar.addEventListener('click', pausar);
-    btnLimpar.addEventListener('click', () => { entrada.value = ''; limpar(); });
-
-    entrada.addEventListener('input', () => {
-      if (!cbAuto.checked) return;
-      clearTimeout(timer);
-      timer = setTimeout(processar, 1000);
-    });
-  </script>
+  <footer class="text-center text-xs text-gray-500 py-4">
+    ⚠️ Dados sensíveis: use exemplos fictícios neste protótipo.
+  </footer>
 </body>
-
 </html>
+
 
